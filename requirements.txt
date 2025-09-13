@@ -1,0 +1,42 @@
+# FastAPI web framework
+fastapi==0.116.1
+
+# ASGI server
+uvicorn==0.35.0
+
+# SQL toolkit / ORM
+SQLAlchemy==2.0.43
+
+# Postgres adapter (binary wheel)
+psycopg2-binary==2.9.10
+
+# .env support
+python-dotenv==1.1.1
+
+# Password hashing
+passlib[bcrypt]==1.7.4
+
+# JSON Web Tokens
+PyJWT==2.10.1
+
+# OpenAI Python client
+openai==1.106.0
+
+# OpenAI Agents SDK
+openai-agents==0.2.11
+
+# Pydantic (validation)
+pydantic==2.11.7
+
+# HTTP client used by some libraries
+httpx==0.28.1
+
+# Database migrations (optional but recommended)
+alembic==1.16.5
+
+# Testing
+pytest==8.4.2
+
+pydantic[email]
+
+twilio==9.8.0
