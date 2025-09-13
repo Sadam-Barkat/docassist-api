@@ -1,7 +1,8 @@
 # backend/app/ai_agent/agent.py
+from openai import AsyncOpenAI
 import asyncio
 from typing import Any
-from agents import Agent, Runner, SQLiteSession
+from agents import Agent, Runner, SQLiteSession, OpenAIChatCompletionsModel
 from .prompts import SYSTEM_INSTRUCTIONS
 from .tools import (
     show_dashboard, show_admin_dashboard, show_doctors, show_appointments, 
@@ -13,19 +14,24 @@ import os
 
 load_dotenv()
 
+gemini_api_key = os.getenv('GEMINI_API_KEY')
+
+client = AsyncOpenAI(
+    api_key=gemini_api_key,
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+)
+
 # Create the main assistant agent. Keep instructions clear and focused.
 assistant_agent = Agent(
     name="DocAssist",
     instructions=SYSTEM_INSTRUCTIONS,
+    model=OpenAIChatCompletionsModel(model="gemini-2.0-flash", openai_client=client),
     tools=[
         show_dashboard, show_admin_dashboard, show_doctors, show_appointments,
         show_profile, start_booking, book_appointment, show_users,
         delete_user, edit_user, update_user_profile, add_doctor,
         delete_doctor, edit_doctor
-    ],
-    model="gemini-1.5-flash",  
-    api_key=os.getenv("GEMINI_API_KEY"), 
-    provider="google"  
+    ] 
 )
 
 # --- Add a session store ---
