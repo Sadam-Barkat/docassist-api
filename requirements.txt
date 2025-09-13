@@ -40,3 +40,5 @@ pytest==8.4.2
 pydantic[email]
 
 twilio==9.8.0
+
+stripe
