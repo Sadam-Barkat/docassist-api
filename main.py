@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -7,13 +8,16 @@ from app.routes import auth, users, doctors, appointments, payments, chatbot, pa
 # FastAPI app
 app = FastAPI(title="Doctor Appointment Booking System")
 
-# CORS for frontend
+# CORS for frontend - support multiple deployment URLs and environment-based configuration
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://docassist-web.vercel.app")
 origins = [
     "http://localhost:3000",   # React dev server
     "http://127.0.0.1:3000",
     "http://localhost:3001",   # Next.js dev server
     "http://127.0.0.1:3001",
-    "https://docassist-web.vercel.app"  # <-- deployed frontend
+    FRONTEND_URL,  # Environment-based frontend URL
+    "https://docassist-web.vercel.app",  # Primary deployment
+    "https://docassist-web-*.vercel.app",  # Branch deployments
 ]
 
 app.add_middleware(
