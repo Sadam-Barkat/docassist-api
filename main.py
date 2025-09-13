@@ -13,7 +13,9 @@ origins = [
     "http://127.0.0.1:3000",
     "http://localhost:3001",   # Next.js dev server
     "http://127.0.0.1:3001",
+    "https://docassist-web.vercel.app"  # <-- deployed frontend
 ]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
