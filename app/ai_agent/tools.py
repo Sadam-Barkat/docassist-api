@@ -191,7 +191,7 @@ async def show_profile(ctx: RunContextWrapper[dict]) -> str:
 # ==================== BOOKING TOOLS (CHATBOT ONLY) ====================
 
 @function_tool
-async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: str, time: str, reason: Optional[str] = None) -> str:
+async def book_appointment(ctx: RunContextWrapper[dict], doctor_name: str, date: str, time: str, reason: Optional[str] = None) -> str:
     """Complete appointment booking with payment."""
     user_id = ctx.context.get("user_id")
     if not user_id:
@@ -204,10 +204,11 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
     db: Session = next(get_db())
     try:
         # Debug logging
-        print(f"DEBUG: Looking for doctor_id: {doctor_id}, type: {type(doctor_id)}")
+        print(f"DEBUG: Looking for doctor_name: {doctor_name}")
         print(f"DEBUG: User ID: {user_id}, Date: {date}, Time: {time}")
         
-        doctor = await get_doctor_by_id(db, doctor_id)
+        # Find doctor by name
+        doctor = db.query(Doctor).filter(Doctor.name.ilike(f"%{doctor_name}%")).first()
         print(f"DEBUG: Doctor found: {doctor}")
         if not doctor:
             return json.dumps({
@@ -220,7 +221,7 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
         from app.models.appointment import Appointment
         existing_appointment = db.query(Appointment).filter(
             Appointment.user_id == user_id,
-            Appointment.doctor_id == doctor_id,
+            Appointment.doctor_id == doctor.id,
             Appointment.status.in_(["scheduled", "confirmed"])
         ).first()
         
@@ -356,11 +357,11 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
                     'quantity': 1,
                 }],
                 mode='payment',
-                success_url=f"{os.getenv('FRONTEND_URL', 'https://docassist-web.vercel.app')}/appointments/success?session_id={{CHECKOUT_SESSION_ID}}",
+                success_url=f"{os.getenv('FRONTEND_URL', 'https://docassist-web.vercel.app')}/appointments/success?session_id={checkout_session.id}",
                 cancel_url=f"{os.getenv('FRONTEND_URL', 'https://docassist-web.vercel.app')}/appointments/cancel",
                 metadata={
                     'user_id': str(user_id),
-                    'doctor_id': str(doctor_id),
+                    'doctor_id': str(doctor.id),
                     'date': parsed_date_str,
                     'time': time,
                     'reason': reason or '',
