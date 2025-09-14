@@ -237,12 +237,15 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
 
         try:
             lower_date = date.lower().strip()
+            print(f"DEBUG: Original date input: '{date}', lower_date: '{lower_date}'")
             
             # Handle natural language dates
             if lower_date == "today":
                 appointment_date = date_type.today()
+                print(f"DEBUG: Parsed as today: {appointment_date}")
             elif lower_date == "tomorrow":
                 appointment_date = date_type.today() + timedelta(days=1)
+                print(f"DEBUG: Parsed as tomorrow: {appointment_date}")
             elif lower_date == "yesterday":
                 return json.dumps({
                     "type": "message_response",
@@ -310,6 +313,9 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
                 appointment_date = datetime.strptime(date, "%Y-%m-%d").date()
 
             today = date_type.today()
+            print(f"DEBUG: Parsed appointment_date: {appointment_date}, today: {today}")
+            print(f"DEBUG: appointment_date < today: {appointment_date < today}")
+            
             if appointment_date < today:
                 return json.dumps({
                     "type": "message_response",
