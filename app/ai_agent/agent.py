@@ -14,7 +14,7 @@ import os
 
 load_dotenv()
 
-# gemini_api_key = os.getenv('GEMINI_API_KEY')
+Openai_api_key = os.getenv('Openai_api_key')
 
 # client = AsyncOpenAI(
 #     api_key=gemini_api_key,
