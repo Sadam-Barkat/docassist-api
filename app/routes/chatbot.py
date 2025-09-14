@@ -25,8 +25,27 @@ async def chat_with_bot(message: dict, current_user=Depends(get_current_user)):
         
         # Debug logging for production troubleshooting
         print(f"Agent result: {result}")
+        print(f"Agent result type: {type(result)}")
         
         final_output = result.get("final_output", "")
+        print(f"Final output: {final_output}")
+        print(f"Final output type: {type(final_output)}")
+        
+        # Clean up malformed responses that wrap tool outputs
+        if isinstance(final_output, str):
+            # Remove wrapper patterns like {"start_booking_response": {"results": [...]}}
+            if final_output.startswith('{"') and '"_response"' in final_output:
+                try:
+                    parsed = json.loads(final_output)
+                    # Extract the actual tool response from wrapper
+                    for key, value in parsed.items():
+                        if key.endswith('_response') and isinstance(value, dict):
+                            results = value.get('results', [])
+                            if results and isinstance(results, list):
+                                final_output = results[0]
+                                break
+                except:
+                    pass
         
         # Check if the result is a JSON string that needs to be returned as-is for frontend navigation handling
         try:
