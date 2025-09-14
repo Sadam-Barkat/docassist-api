@@ -12,19 +12,22 @@ import urllib.parse
 router = APIRouter(prefix="/password", tags=["password"])
 
 @router.post("/forgot")
-def forgot_password(data: PasswordResetRequest, request: Request, db: Session = Depends(get_db)):
+def forgot_password(data: PasswordResetRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email).first()
     if not user:
         return {"msg": "If the email exists, a reset link was sent."}
 
     token = create_reset_token({"sub": str(user.id), "email": user.email})
-    base_url = str(request.base_url).rstrip("/")
-    reset_link = f"{base_url}/password/reset?token={urllib.parse.quote(token)}"
+    
+    # Use frontend URL from environment variable
+    frontend_url = os.getenv("NEXT_PUBLIC_API_URL", "https://docassist-web.vercel.app")
+    reset_link = f"{frontend_url}/reset-password?token={urllib.parse.quote(token)}"
 
     body = f"Hello,\n\nClick the link to reset your password (valid {RESET_TOKEN_EXPIRE_MINUTES} minutes):\n{reset_link}"
     send_email(user.email, "Password Reset", body)
 
     return {"msg": "If the email exists, a reset link was sent."}
+
 
 @router.post("/reset")
 def reset_password(data: PasswordResetConfirm, db: Session = Depends(get_db)):
