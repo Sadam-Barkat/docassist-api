@@ -233,9 +233,12 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
         
         # Validate and parse appointment date
         from datetime import datetime, date as date_type, timedelta
+        import re
 
         try:
             lower_date = date.lower().strip()
+            
+            # Handle natural language dates
             if lower_date == "today":
                 appointment_date = date_type.today()
             elif lower_date == "tomorrow":
@@ -246,7 +249,64 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
                     "success": False,
                     "message": "❌ **Invalid Date** - You cannot book appointments for past dates like yesterday."
                 })
+            elif "next" in lower_date:
+                # Handle "next monday", "next week", etc.
+                days_ahead = 7  # Default to next week
+                if "monday" in lower_date:
+                    days_ahead = (0 - date_type.today().weekday() + 7) % 7
+                    if days_ahead == 0:
+                        days_ahead = 7
+                elif "tuesday" in lower_date:
+                    days_ahead = (1 - date_type.today().weekday() + 7) % 7
+                    if days_ahead == 0:
+                        days_ahead = 7
+                elif "wednesday" in lower_date:
+                    days_ahead = (2 - date_type.today().weekday() + 7) % 7
+                    if days_ahead == 0:
+                        days_ahead = 7
+                elif "thursday" in lower_date:
+                    days_ahead = (3 - date_type.today().weekday() + 7) % 7
+                    if days_ahead == 0:
+                        days_ahead = 7
+                elif "friday" in lower_date:
+                    days_ahead = (4 - date_type.today().weekday() + 7) % 7
+                    if days_ahead == 0:
+                        days_ahead = 7
+                elif "saturday" in lower_date:
+                    days_ahead = (5 - date_type.today().weekday() + 7) % 7
+                    if days_ahead == 0:
+                        days_ahead = 7
+                elif "sunday" in lower_date:
+                    days_ahead = (6 - date_type.today().weekday() + 7) % 7
+                    if days_ahead == 0:
+                        days_ahead = 7
+                
+                appointment_date = date_type.today() + timedelta(days=days_ahead)
+            elif any(day in lower_date for day in ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]):
+                # Handle "this monday", "monday", etc.
+                days_ahead = 0
+                if "monday" in lower_date:
+                    days_ahead = (0 - date_type.today().weekday()) % 7
+                elif "tuesday" in lower_date:
+                    days_ahead = (1 - date_type.today().weekday()) % 7
+                elif "wednesday" in lower_date:
+                    days_ahead = (2 - date_type.today().weekday()) % 7
+                elif "thursday" in lower_date:
+                    days_ahead = (3 - date_type.today().weekday()) % 7
+                elif "friday" in lower_date:
+                    days_ahead = (4 - date_type.today().weekday()) % 7
+                elif "saturday" in lower_date:
+                    days_ahead = (5 - date_type.today().weekday()) % 7
+                elif "sunday" in lower_date:
+                    days_ahead = (6 - date_type.today().weekday()) % 7
+                
+                # If the day has already passed this week, move to next week
+                if days_ahead == 0 and date_type.today().weekday() != 0:  # Not Monday
+                    days_ahead = 7
+                
+                appointment_date = date_type.today() + timedelta(days=days_ahead)
             else:
+                # Try to parse as YYYY-MM-DD format
                 appointment_date = datetime.strptime(date, "%Y-%m-%d").date()
 
             today = date_type.today()
@@ -264,7 +324,7 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
             return json.dumps({
                 "type": "message_response",
                 "success": False,
-                "message": "❌ **Invalid Date Format** - Please provide date in YYYY-MM-DD format (e.g., 2025-01-15), or say 'today'/'tomorrow'."
+                "message": "❌ **Invalid Date Format** - Please provide date as 'today', 'tomorrow', 'next Monday', or YYYY-MM-DD format (e.g., 2025-01-15)."
             })
 
         # Stripe payment setup
