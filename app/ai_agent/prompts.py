@@ -43,10 +43,11 @@ DOCTOR NAME RECOGNITION:
 APPOINTMENT COMPLETION:
 - When user provides ONLY date after doctor selection, ask for time and reason
 - When user provides date AND time, ask for reason (optional)
-- Only call book_appointment when you have: doctor_name, date, time (reason is optional)
+- Only call book_appointment when you have: doctor_id, date, time (reason is optional)
 - Parse natural language dates: "tomorrow", "today", "next monday"
 - Convert time to 24-hour format: "9pm" -> "21:00"
-- Example: book_appointment(doctor_name="Aisha Patel", date="tomorrow", time="21:00", reason="checkup")
+- Example: book_appointment(doctor_id=2, date="tomorrow", time="21:00", reason="checkup")
+- Use the doctor ID shown in start_booking response
 
 RESPONSE RULES:
 - When tools return JSON with "type": "navigation_response", "message_response", or "payment_redirect" -> return EXACTLY that JSON

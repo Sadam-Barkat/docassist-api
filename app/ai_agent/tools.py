@@ -191,7 +191,7 @@ async def show_profile(ctx: RunContextWrapper[dict]) -> str:
 # ==================== BOOKING TOOLS (CHATBOT ONLY) ====================
 
 @function_tool
-async def book_appointment(ctx: RunContextWrapper[dict], doctor_name: str, date: str, time: str, reason: Optional[str] = None) -> str:
+async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: str, time: str, reason: Optional[str] = None) -> str:
     """Complete appointment booking with payment."""
     user_id = ctx.context.get("user_id")
     if not user_id:
@@ -204,11 +204,11 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_name: str, date:
     db: Session = next(get_db())
     try:
         # Debug logging
-        print(f"DEBUG: Looking for doctor_name: {doctor_name}")
+        print(f"DEBUG: Looking for doctor_id: {doctor_id}")
         print(f"DEBUG: User ID: {user_id}, Date: {date}, Time: {time}")
         
-        # Find doctor by name
-        doctor = db.query(Doctor).filter(Doctor.name.ilike(f"%{doctor_name}%")).first()
+        # Find doctor by ID
+        doctor = await get_doctor_by_id(db, doctor_id)
         print(f"DEBUG: Doctor found: {doctor}")
         if not doctor:
             return json.dumps({
@@ -221,7 +221,7 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_name: str, date:
         from app.models.appointment import Appointment
         existing_appointment = db.query(Appointment).filter(
             Appointment.user_id == user_id,
-            Appointment.doctor_id == doctor.id,
+            Appointment.doctor_id == doctor_id,
             Appointment.status.in_(["scheduled", "confirmed"])
         ).first()
         
@@ -361,7 +361,7 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_name: str, date:
                 cancel_url=f"{os.getenv('FRONTEND_URL', 'https://docassist-web.vercel.app')}/appointments/cancel",
                 metadata={
                     'user_id': str(user_id),
-                    'doctor_id': str(doctor.id),
+                    'doctor_id': str(doctor_id),
                     'date': parsed_date_str,
                     'time': time,
                     'reason': reason or '',
@@ -685,4 +685,69 @@ async def edit_doctor(ctx: RunContextWrapper[dict], doctor_name: str) -> str:
     finally:
         db.close()
 
-start_booking = book_appointment
+@function_tool
+async def start_booking(ctx: RunContextWrapper[dict], doctor_name: Optional[str] = None) -> str:
+    """Start appointment booking process in chatbot."""
+    user_id = ctx.context.get("user_id")
+    if not user_id:
+        return json.dumps({
+            "type": "message_response",
+            "success": False,
+            "message": "Please log in to book an appointment."
+        })
+
+    db: Session = next(get_db())
+    try:
+        if doctor_name:
+            # Find specific doctor by name (case insensitive, partial match)
+            doctor = db.query(Doctor).filter(Doctor.name.ilike(f"%{doctor_name}%")).first()
+            if doctor:
+                return json.dumps({
+                    "type": "message_response",
+                    "success": True,
+                    "message": f"Perfect! I found Dr. {doctor.name} ({doctor.specialty}) - ID: {doctor.id}.\n\nTo complete your booking, please provide:\n\n📅 **Date**: When would you like your appointment? (e.g., 'today', 'tomorrow', 'next Monday')\n⏰ **Time**: What time works for you? (e.g., 'morning', '2 PM', '14:30')\n📝 **Reason**: What's the reason for your visit? (optional)\n\nYou can provide all details in one message like: 'Tomorrow at 2 PM for skin consultation'"
+                })
+            else:
+                # Doctor not found, show available doctors
+                doctors = db.query(Doctor).all()
+                if not doctors:
+                    return json.dumps({
+                        "type": "message_response",
+                        "success": False,
+                        "message": "No doctors available at the moment."
+                    })
+                
+                message = f"I couldn't find a doctor named '{doctor_name}'. Here are our available doctors:\n\n"
+                for i, doc in enumerate(doctors[:5], 1):
+                    message += f"{i}. **Dr. {doc.name}** - {doc.specialty} (ID: {doc.id})\n"
+                
+                message += "\nPlease tell me the exact doctor's name you'd like to book with."
+                
+                return json.dumps({
+                    "type": "message_response",
+                    "success": True,
+                    "message": message
+                })
+        
+        # Show available doctors when no specific doctor mentioned
+        doctors = db.query(Doctor).all()
+        if not doctors:
+            return json.dumps({
+                "type": "message_response",
+                "success": False,
+                "message": "No doctors available at the moment."
+            })
+        
+        message = "Which doctor would you like to book with?\n\n"
+        for i, doctor in enumerate(doctors[:5], 1):
+            message += f"{i}. **Dr. {doctor.name}** - {doctor.specialty} (ID: {doctor.id})\n"
+        
+        message += "\nPlease tell me the doctor's name."
+        
+        return json.dumps({
+            "type": "message_response",
+            "success": True,
+            "message": message
+        })
+    finally:
+        db.close()
