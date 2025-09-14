@@ -8,6 +8,10 @@ from app.utils.security import hash_password
 from app.utils.email_service import send_email
 from config import RESET_TOKEN_EXPIRE_MINUTES
 import urllib.parse
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 router = APIRouter(prefix="/password", tags=["password"])
 
