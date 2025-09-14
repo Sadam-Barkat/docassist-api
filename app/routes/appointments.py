@@ -17,8 +17,8 @@ load_dotenv()
 stripe.api_key = os.getenv("STRIPE_API_KEY")
 router = APIRouter(prefix="/appointments", tags=["Appointments"])
 
-SUCCESS_URL = "http://localhost:8000/appointments/success"
-CANCEL_URL = "http://localhost:8000/appointments/cancel"
+SUCCESS_URL = "https://docassist-web.vercel.app/appointments/success"
+CANCEL_URL = "https://docassist-web.vercel.app/appointments/cancel"
 
 @router.post("/")
 def book_appointment(
@@ -79,15 +79,16 @@ def book_appointment(
                         'name': f'Appointment with Dr. {doctor.name}',
                         'description': f'{doctor.specialty} consultation on {data.date} at {data.time}',
                     },
-                    'unit_amount': int(float(doctor.fee.replace('$', '').replace(',', '')) * 100),  # Convert to cents
+                    'unit_amount': int(float(doctor.fee.replace("$", "").replace(",", "")) * 100),
                 },
                 'quantity': 1,
             }],
             mode='payment',
-            success_url=f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/payment/cancel",
+            success_url=f"{os.getenv('FRONTEND_URL', 'https://docassist-web.vercel.app')}/appointments/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{os.getenv('FRONTEND_URL', 'https://docassist-web.vercel.app')}/appointments/cancel",
             metadata=appointment_metadata
         )
+
         
         return {"checkout_url": checkout_session.url}
     except Exception as e:
