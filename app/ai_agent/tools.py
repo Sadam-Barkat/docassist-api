@@ -299,24 +299,41 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
                 "message": f"❌ **Duplicate Appointment** - You already have an appointment with Dr. {doctor.name}. Please cancel your existing appointment before booking a new one."
             })
         
-        # Validate appointment date - must be today or future
-        from datetime import datetime, date as date_type
+                # Validate appointment date - must be today or future
+        from datetime import datetime, date as date_type, timedelta
+
         try:
-            appointment_date = datetime.strptime(date, "%Y-%m-%d").date()
+            # Handle natural words first
+            lower_date = date.lower().strip()
+            if lower_date == "today":
+                appointment_date = date_type.today()
+            elif lower_date == "tomorrow":
+                appointment_date = date_type.today() + timedelta(days=1)
+            elif lower_date == "yesterday":
+                return json.dumps({
+                    "type": "message_response",
+                    "success": False,
+                    "message": "❌ **Invalid Date** - You cannot book appointments for past dates like yesterday."
+                })
+            else:
+                # Fallback: expect YYYY-MM-DD
+                appointment_date = datetime.strptime(date, "%Y-%m-%d").date()
+
             today = date_type.today()
-            
             if appointment_date < today:
                 return json.dumps({
                     "type": "message_response",
                     "success": False,
-                    "message": f"❌ **Invalid Date** - Please select a date from today ({today.strftime('%Y-%m-%d')}) onwards. You cannot book appointments for past dates."
+                    "message": f"❌ **Invalid Date** - Please select a date from today ({today.strftime('%Y-%m-%d')}) onwards."
                 })
+
         except ValueError:
             return json.dumps({
                 "type": "message_response",
                 "success": False,
-                "message": "❌ **Invalid Date Format** - Please provide date in YYYY-MM-DD format (e.g., 2025-01-15)."
+                "message": "❌ **Invalid Date Format** - Please provide date in YYYY-MM-DD format (e.g., 2025-01-15), or say 'today'/'tomorrow'."
             })
+
         
         # Import Stripe here to avoid circular imports
         import stripe
@@ -342,8 +359,8 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
                     'quantity': 1,
                 }],
                 mode='payment',
-                success_url=f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
-                cancel_url=f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/appointments",
+                success_url=f"{os.getenv('FRONTEND_URL', 'https://docassist-web.vercel.app')}/appointments/success?session_id={{CHECKOUT_SESSION_ID}}",
+                cancel_url=f"{os.getenv('FRONTEND_URL', 'https://docassist-web.vercel.app')}/appointments/cancel",
                 metadata={
                     'user_id': str(user_id),
                     'doctor_id': str(doctor_id),
