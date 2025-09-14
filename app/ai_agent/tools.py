@@ -191,74 +191,6 @@ async def show_profile(ctx: RunContextWrapper[dict]) -> str:
 # ==================== BOOKING TOOLS (CHATBOT ONLY) ====================
 
 @function_tool
-async def start_booking(ctx: RunContextWrapper[dict], doctor_name: Optional[str] = None) -> str:
-    """Start appointment booking process in chatbot."""
-    user_id = ctx.context.get("user_id")
-    if not user_id:
-        return json.dumps({
-            "type": "message_response",
-            "success": False,
-            "message": "Please log in to book an appointment."
-        })
-
-    db: Session = next(get_db())
-    try:
-        if doctor_name:
-            # Find specific doctor by name (case insensitive, partial match)
-            doctor = db.query(Doctor).filter(Doctor.name.ilike(f"%{doctor_name}%")).first()
-            if doctor:
-                return json.dumps({
-                    "type": "message_response",
-                    "success": True,
-                    "message": f"Perfect! I found Dr. {doctor.name} ({doctor.specialty}).\n\nTo complete your booking, please provide:\n\n📅 **Date**: When would you like your appointment? (e.g., 'tomorrow', 'next Monday', '2025-09-15')\n⏰ **Time**: What time works for you? (e.g., 'morning', '2 PM', '14:30')\n📝 **Reason**: What's the reason for your visit? (optional)\n\nYou can provide all details in one message like: 'Tomorrow at 2 PM for skin consultation'"
-                })
-            else:
-                # Doctor not found, show available doctors
-                doctors = db.query(Doctor).all()
-                if not doctors:
-                    return json.dumps({
-                        "type": "message_response",
-                        "success": False,
-                        "message": "No doctors available at the moment."
-                    })
-                
-                message = f"I couldn't find a doctor named '{doctor_name}'. Here are our available doctors:\n\n"
-                for i, doc in enumerate(doctors[:5], 1):
-                    message += f"{i}. **Dr. {doc.name}** - {doc.specialty}\n"
-                
-                message += "\nPlease tell me the exact doctor's name you'd like to book with."
-                
-                return json.dumps({
-                    "type": "message_response",
-                    "success": True,
-                    "message": message
-                })
-        
-        # Show available doctors when no specific doctor mentioned
-        doctors = db.query(Doctor).all()
-        if not doctors:
-            return json.dumps({
-                "type": "message_response",
-                "success": False,
-                "message": "No doctors available at the moment."
-            })
-        
-        message = "Which doctor would you like to book with?\n\n"
-        for i, doctor in enumerate(doctors[:5], 1):
-            message += f"{i}. **Dr. {doctor.name}** - {doctor.specialty}\n"
-        
-        message += "\nPlease tell me the doctor's name or number."
-        
-        return json.dumps({
-            "type": "message_response",
-            "success": True,
-            "message": message
-        })
-    finally:
-        db.close()
-
-
-@function_tool
 async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: str, time: str, reason: Optional[str] = None) -> str:
     """Complete appointment booking with payment."""
     user_id = ctx.context.get("user_id")
@@ -284,7 +216,7 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
                 "message": "❌ **Doctor Not Found** - Please select a doctor from the available list. Would you like me to show you the available doctors?"
             })
         
-        # Check if user already has a pending/confirmed appointment with this doctor
+        # Check for duplicate appointment
         from app.models.appointment import Appointment
         existing_appointment = db.query(Appointment).filter(
             Appointment.user_id == user_id,
@@ -299,11 +231,10 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
                 "message": f"❌ **Duplicate Appointment** - You already have an appointment with Dr. {doctor.name}. Please cancel your existing appointment before booking a new one."
             })
         
-                # Validate appointment date - must be today or future
+        # Validate and parse appointment date
         from datetime import datetime, date as date_type, timedelta
 
         try:
-            # Handle natural words first
             lower_date = date.lower().strip()
             if lower_date == "today":
                 appointment_date = date_type.today()
@@ -316,7 +247,6 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
                     "message": "❌ **Invalid Date** - You cannot book appointments for past dates like yesterday."
                 })
             else:
-                # Fallback: expect YYYY-MM-DD
                 appointment_date = datetime.strptime(date, "%Y-%m-%d").date()
 
             today = date_type.today()
@@ -326,6 +256,9 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
                     "success": False,
                     "message": f"❌ **Invalid Date** - Please select a date from today ({today.strftime('%Y-%m-%d')}) onwards."
                 })
+            
+            # Convert to string YYYY-MM-DD for Stripe metadata and response
+            parsed_date_str = appointment_date.strftime("%Y-%m-%d")
 
         except ValueError:
             return json.dumps({
@@ -334,8 +267,7 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
                 "message": "❌ **Invalid Date Format** - Please provide date in YYYY-MM-DD format (e.g., 2025-01-15), or say 'today'/'tomorrow'."
             })
 
-        
-        # Import Stripe here to avoid circular imports
+        # Stripe payment setup
         import stripe
         from dotenv import load_dotenv
         import os
@@ -343,7 +275,6 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
 
         stripe.api_key = os.getenv("STRIPE_API_KEY")
         
-        # Create Stripe checkout session with appointment data
         try:
             checkout_session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
@@ -352,9 +283,9 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
                         'currency': 'usd',
                         'product_data': {
                             'name': f'Appointment with Dr. {doctor.name}',
-                            'description': f'{doctor.specialty} - {date} at {time}',
+                            'description': f'{doctor.specialty} - {parsed_date_str} at {time}',
                         },
-                        'unit_amount': int(float(doctor.fee or "100") * 100),  # Convert to cents
+                        'unit_amount': int(float(doctor.fee or "100") * 100),
                     },
                     'quantity': 1,
                 }],
@@ -364,7 +295,7 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
                 metadata={
                     'user_id': str(user_id),
                     'doctor_id': str(doctor_id),
-                    'date': date,
+                    'date': parsed_date_str,
                     'time': time,
                     'reason': reason or '',
                     'user_name': ctx.context.get("name", ""),
@@ -382,7 +313,7 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
                 "appointment_details": {
                     "doctor": doctor.name,
                     "specialty": doctor.specialty,
-                    "date": date,
+                    "date": parsed_date_str,
                     "time": time,
                     "fee": float(doctor.fee or "100")
                 }
