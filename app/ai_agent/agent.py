@@ -6,7 +6,7 @@ from agents import Agent, Runner, SQLiteSession, OpenAIChatCompletionsModel, set
 from .prompts import SYSTEM_INSTRUCTIONS
 from .tools import (
     show_dashboard, show_admin_dashboard, show_doctors, show_appointments, 
-    show_profile, start_booking, book_appointment, show_users, delete_user, 
+    show_profile, book_appointment, show_users, delete_user, 
     edit_user, update_user_profile, add_doctor, delete_doctor, edit_doctor
 )
 from dotenv import load_dotenv
@@ -26,7 +26,7 @@ assistant_agent = Agent(
     instructions=SYSTEM_INSTRUCTIONS,
     tools=[
         show_dashboard, show_admin_dashboard, show_doctors, show_appointments,
-        show_profile, start_booking, book_appointment, show_users,
+        show_profile, book_appointment, show_users,
         delete_user, edit_user, update_user_profile, add_doctor,
         delete_doctor, edit_doctor
     ]
