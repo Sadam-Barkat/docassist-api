@@ -14,18 +14,17 @@ import os
 
 load_dotenv()
 
-gemini_api_key = os.getenv('GEMINI_API_KEY')
+# gemini_api_key = os.getenv('GEMINI_API_KEY')
 
-client = AsyncOpenAI(
-    api_key=gemini_api_key,
-    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-)
+# client = AsyncOpenAI(
+#     api_key=gemini_api_key,
+#     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+# )
 
 # Create the main assistant agent. Keep instructions clear and focused.
 assistant_agent = Agent(
     name="DocAssist",
     instructions=SYSTEM_INSTRUCTIONS,
-    model=OpenAIChatCompletionsModel(model="gemini-2.0-flash-exp", openai_client=client),
     tools=[
         show_dashboard, show_admin_dashboard, show_doctors, show_appointments,
         show_profile, start_booking, book_appointment, show_users,
