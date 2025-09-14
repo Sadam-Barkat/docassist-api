@@ -81,7 +81,8 @@ async def show_doctors(ctx: RunContextWrapper[dict], specialty: Optional[str] = 
     """Show doctors list in chatbot AND redirect to doctors page."""
     db: Session = next(get_db())
     try:
-        doctors = await list_doctors_by_specialty(db, specialty)
+        # Get all doctors directly from database
+        doctors = db.query(Doctor).all()
         
         if not doctors:
             return json.dumps({
@@ -107,6 +108,13 @@ async def show_doctors(ctx: RunContextWrapper[dict], specialty: Optional[str] = 
             "message": message,
             "data": {"doctors": [{"id": d.id, "name": d.name, "specialty": d.specialty, "fee": d.fee} for d in doctors]},
             "navigation": {"action": "navigate", "path": "/doctors", "delay_ms": 300}
+        })
+    except Exception as e:
+        print(f"Error in show_doctors: {e}")
+        return json.dumps({
+            "type": "message_response",
+            "success": False,
+            "message": f"Error fetching doctors: {str(e)}"
         })
     finally:
         db.close()
