@@ -208,7 +208,7 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
         print(f"DEBUG: User ID: {user_id}, Date: {date}, Time: {time}")
         
         # Find doctor by ID
-        doctor = await get_doctor_by_id(db, doctor_id)
+        doctor = db.query(Doctor).filter(Doctor.id == doctor_id).first()
         print(f"DEBUG: Doctor found: {doctor}")
         if not doctor:
             return json.dumps({
@@ -327,11 +327,19 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
             # Convert to string YYYY-MM-DD for Stripe metadata and response
             parsed_date_str = appointment_date.strftime("%Y-%m-%d")
 
-        except ValueError:
+        except ValueError as ve:
+            print(f"DEBUG: Date parsing error: {str(ve)}")
             return json.dumps({
                 "type": "message_response",
                 "success": False,
                 "message": "❌ **Invalid Date Format** - Please provide date as 'today', 'tomorrow', 'next Monday', or YYYY-MM-DD format (e.g., 2025-01-15)."
+            })
+        except Exception as e:
+            print(f"DEBUG: Unexpected error in date parsing: {str(e)}")
+            return json.dumps({
+                "type": "message_response",
+                "success": False,
+                "message": f"❌ **Date Processing Error** - {str(e)}"
             })
 
         # Stripe payment setup
@@ -387,12 +395,31 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
             })
             
         except stripe.error.StripeError as e:
+            print(f"DEBUG: Stripe error: {str(e)}")
             return json.dumps({
                 "type": "message_response",
                 "success": False,
                 "message": f"Payment setup failed: {str(e)}"
             })
+        except Exception as e:
+            print(f"DEBUG: General error in book_appointment: {str(e)}")
+            import traceback
+            print(f"DEBUG: Full traceback: {traceback.format_exc()}")
+            return json.dumps({
+                "type": "message_response",
+                "success": False,
+                "message": f"An error occurred while booking your appointment: {str(e)}"
+            })
         
+    except Exception as e:
+        print(f"DEBUG: Outer exception in book_appointment: {str(e)}")
+        import traceback
+        print(f"DEBUG: Full outer traceback: {traceback.format_exc()}")
+        return json.dumps({
+            "type": "message_response",
+            "success": False,
+            "message": "An error occurred while booking your appointment. Please try again."
+        })
     finally:
         db.close()
 
