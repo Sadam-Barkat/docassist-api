@@ -31,8 +31,7 @@ assistant_agent = Agent(
         show_profile, start_booking, book_appointment, show_users,
         delete_user, edit_user, update_user_profile, add_doctor,
         delete_doctor, edit_doctor
-    ],
-    tool_choice="auto"  # Ensure tools are called when appropriate
+    ]
 )
 
 # --- Add a session store ---
