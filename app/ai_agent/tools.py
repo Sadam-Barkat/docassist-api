@@ -204,17 +204,38 @@ async def start_booking(ctx: RunContextWrapper[dict], doctor_name: Optional[str]
     db: Session = next(get_db())
     try:
         if doctor_name:
-            # Find specific doctor
+            # Find specific doctor by name (case insensitive, partial match)
             doctor = db.query(Doctor).filter(Doctor.name.ilike(f"%{doctor_name}%")).first()
             if doctor:
                 return json.dumps({
                     "type": "message_response",
                     "success": True,
-                    "message": f"Great! You want to book with Dr. {doctor.name} ({doctor.specialty}).\n\nPlease tell me:\n1. Your preferred date (e.g., 'tomorrow', 'next Monday', '2025-09-15')\n2. Preferred time (e.g., 'morning', '2 PM', '14:30')\n3. Reason for visit (optional)"
+                    "message": f"Perfect! I found Dr. {doctor.name} ({doctor.specialty}).\n\nTo complete your booking, please provide:\n\n📅 **Date**: When would you like your appointment? (e.g., 'tomorrow', 'next Monday', '2025-09-15')\n⏰ **Time**: What time works for you? (e.g., 'morning', '2 PM', '14:30')\n📝 **Reason**: What's the reason for your visit? (optional)\n\nYou can provide all details in one message like: 'Tomorrow at 2 PM for skin consultation'"
+                })
+            else:
+                # Doctor not found, show available doctors
+                doctors = db.query(Doctor).all()
+                if not doctors:
+                    return json.dumps({
+                        "type": "message_response",
+                        "success": False,
+                        "message": "No doctors available at the moment."
+                    })
+                
+                message = f"I couldn't find a doctor named '{doctor_name}'. Here are our available doctors:\n\n"
+                for i, doc in enumerate(doctors[:5], 1):
+                    message += f"{i}. **Dr. {doc.name}** - {doc.specialty}\n"
+                
+                message += "\nPlease tell me the exact doctor's name you'd like to book with."
+                
+                return json.dumps({
+                    "type": "message_response",
+                    "success": True,
+                    "message": message
                 })
         
-        # Show available doctors
-        doctors = await list_doctors_by_specialty(db)
+        # Show available doctors when no specific doctor mentioned
+        doctors = db.query(Doctor).all()
         if not doctors:
             return json.dumps({
                 "type": "message_response",

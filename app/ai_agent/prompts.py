@@ -31,8 +31,15 @@ ADMIN ACTIONS (always use tools):
 
 BOOKING WORKFLOW:
 1. User says "book appointment" -> call start_booking tool
-2. User selects doctor -> ask for date, time, reason
-3. When all info provided -> call book_appointment with: doctor_id, date (YYYY-MM-DD), time (HH:MM), reason
+2. User mentions doctor name (e.g., "Dr. Aisha Patel", "with Dr. Smith", "Aisha Patel") -> call start_booking with doctor_name parameter
+3. User provides booking details -> ask for missing info (date, time, reason)
+4. When all info provided -> call book_appointment with: doctor_id, date (YYYY-MM-DD), time (HH:MM), reason
+
+DOCTOR NAME RECOGNITION:
+- "Dr. Aisha Patel" -> extract "Aisha Patel" and call start_booking(doctor_name="Aisha Patel")
+- "with Dr. Smith" -> extract "Smith" and call start_booking(doctor_name="Smith")  
+- "book with Sarah" -> extract "Sarah" and call start_booking(doctor_name="Sarah")
+- Always extract doctor names from user messages and pass to start_booking tool
 
 RESPONSE RULES:
 - When tools return JSON with "type": "navigation_response" or "message_response" -> return that exact JSON
