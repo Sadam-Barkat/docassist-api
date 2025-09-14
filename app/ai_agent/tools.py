@@ -617,3 +617,5 @@ async def edit_doctor(ctx: RunContextWrapper[dict], doctor_name: str) -> str:
         })
     finally:
         db.close()
+
+start_booking = book_appointment
