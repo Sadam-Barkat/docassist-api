@@ -2,7 +2,7 @@
 from openai import AsyncOpenAI
 import asyncio
 from typing import Any
-from agents import Agent, Runner, SQLiteSession, OpenAIChatCompletionsModel
+from agents import Agent, Runner, SQLiteSession, OpenAIChatCompletionsModel, set_default_openai_key
 from .prompts import SYSTEM_INSTRUCTIONS
 from .tools import (
     show_dashboard, show_admin_dashboard, show_doctors, show_appointments, 
@@ -14,12 +14,11 @@ import os
 
 load_dotenv()
 
-Openai_api_key = os.getenv('Openai_api_key')
-
-# client = AsyncOpenAI(
-#     api_key=gemini_api_key,
-#     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-# )
+# --- Set the OpenAI API key properly ---
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # Ensure your .env has OPENAI_API_KEY
+if not OPENAI_API_KEY:
+    raise ValueError("OPENAI_API_KEY is not set in the environment")
+set_default_openai_key(OPENAI_API_KEY)
 
 # Create the main assistant agent. Keep instructions clear and focused.
 assistant_agent = Agent(
@@ -36,7 +35,6 @@ assistant_agent = Agent(
 # --- Add a session store ---
 _session_store: dict[str, SQLiteSession] = {}
 
-
 def get_or_create_session(user_id: str | None = None) -> SQLiteSession:
     """Return the existing session for a user, or create a new one if none exists."""
     if not user_id:
@@ -49,10 +47,7 @@ def get_or_create_session(user_id: str | None = None) -> SQLiteSession:
 async def run_agent(user_input: str, user_context: dict | None = None, max_turns: int = 10) -> dict[str, Any]:
     """
     Run the DocAssist agent with a user input and optional context.
-    - user_input: text from the user
-    - user_context: optional context dict (e.g., {'user_id': 123})
-    Returns:
-      dict with shape {'final_output': str, 'trace': run_result}
+    Returns dict with shape {'final_output': str, 'raw': run_result}
     """
     try:
         user_id = str(user_context.get("user_id")) if user_context and "user_id" in user_context else None
@@ -73,9 +68,7 @@ async def run_agent(user_input: str, user_context: dict | None = None, max_turns
         
         print(f"Agent run completed. Final output: {run_result.final_output}")
         
-        # run_result has fields like final_output, new_items, etc.
         return {"final_output": run_result.final_output, "raw": run_result}
     except Exception as e:
         print(f"Error in run_agent: {str(e)}")
         return {"final_output": f"Agent error: {str(e)}", "raw": None}
-
