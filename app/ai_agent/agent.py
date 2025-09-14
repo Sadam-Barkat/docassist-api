@@ -25,7 +25,7 @@ client = AsyncOpenAI(
 assistant_agent = Agent(
     name="DocAssist",
     instructions=SYSTEM_INSTRUCTIONS,
-    model=OpenAIChatCompletionsModel(model="gemini-1.5-flash", openai_client=client),
+    model=OpenAIChatCompletionsModel(model="gemini-2.0-flash-exp", openai_client=client),
     tools=[
         show_dashboard, show_admin_dashboard, show_doctors, show_appointments,
         show_profile, start_booking, book_appointment, show_users,
