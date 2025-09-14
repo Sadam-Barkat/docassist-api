@@ -365,7 +365,7 @@ async def book_appointment(ctx: RunContextWrapper[dict], doctor_id: int, date: s
                     'quantity': 1,
                 }],
                 mode='payment',
-                success_url=f"{os.getenv('FRONTEND_URL', 'https://docassist-web.vercel.app')}/appointments/success?session_id={checkout_session.id}",
+                success_url=f"{os.getenv('FRONTEND_URL', 'https://docassist-web.vercel.app')}/appointments/success?session_id={{CHECKOUT_SESSION_ID}}",
                 cancel_url=f"{os.getenv('FRONTEND_URL', 'https://docassist-web.vercel.app')}/appointments/cancel",
                 metadata={
                     'user_id': str(user_id),
@@ -732,7 +732,7 @@ async def start_booking(ctx: RunContextWrapper[dict], doctor_name: Optional[str]
                 return json.dumps({
                     "type": "message_response",
                     "success": True,
-                    "message": f"Perfect! I found Dr. {doctor.name} ({doctor.specialty}) - ID: {doctor.id}.\n\nTo complete your booking, please provide:\n\n📅 **Date**: When would you like your appointment? (e.g., 'today', 'tomorrow', 'next Monday')\n⏰ **Time**: What time works for you? (e.g., 'morning', '2 PM', '14:30')\n📝 **Reason**: What's the reason for your visit? (optional)\n\nYou can provide all details in one message like: 'Tomorrow at 2 PM for skin consultation'"
+                    "message": f"Perfect! I found {doctor.name} ({doctor.specialty}) - ID: {doctor.id}.\n\nTo complete your booking, please provide:\n\n📅 **Date**: When would you like your appointment? (e.g., 'today', 'tomorrow', 'next Monday')\n⏰ **Time**: What time works for you? (e.g., 'morning', '2 PM', '14:30')\n📝 **Reason**: What's the reason for your visit? (optional)\n\nYou can provide all details in one message like: 'Tomorrow at 2 PM for skin consultation'"
                 })
             else:
                 # Doctor not found, show available doctors
@@ -746,7 +746,7 @@ async def start_booking(ctx: RunContextWrapper[dict], doctor_name: Optional[str]
                 
                 message = f"I couldn't find a doctor named '{doctor_name}'. Here are our available doctors:\n\n"
                 for i, doc in enumerate(doctors[:5], 1):
-                    message += f"{i}. **Dr. {doc.name}** - {doc.specialty} (ID: {doc.id})\n"
+                    message += f"{i}. **{doc.name}** - {doc.specialty} (ID: {doc.id})\n"
                 
                 message += "\nPlease tell me the exact doctor's name you'd like to book with."
                 
@@ -767,7 +767,7 @@ async def start_booking(ctx: RunContextWrapper[dict], doctor_name: Optional[str]
         
         message = "Which doctor would you like to book with?\n\n"
         for i, doctor in enumerate(doctors[:5], 1):
-            message += f"{i}. **Dr. {doctor.name}** - {doctor.specialty} (ID: {doctor.id})\n"
+            message += f"{i}. **{doctor.name}** - {doctor.specialty} (ID: {doctor.id})\n"
         
         message += "\nPlease tell me the doctor's name."
         

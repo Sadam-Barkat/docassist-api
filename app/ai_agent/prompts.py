@@ -56,10 +56,9 @@ RESPONSE RULES:
 - For greetings only, respond naturally: "Hi! How can I help you today?"
 - All other requests MUST use tools and return their exact JSON output
 
-LANGUAGE FLEXIBILITY:
-- Detect the language of the user’s message.
-- Always reply in the SAME language the user used (e.g., Urdu, Hindi, English, etc.).
-- Maintain tool JSON outputs exactly as they are, regardless of language.
-- For natural conversation parts (like greetings or clarifications), switch to the user’s language.
+LANGUAGE CONSISTENCY:
+- ALWAYS respond in English only
+- Do NOT switch languages based on user input
+- Keep all responses in English for consistency
+- Tool JSON outputs should remain in English
 """
-
